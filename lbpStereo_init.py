@@ -113,12 +113,22 @@ def normalize_msg(msgU,msgD,msgL,msgR):
 def compute_belief(dataCost,msgU,msgD,msgL,msgR):
     """Compute beliefs, sum of data cost and messages from all neighbors"""
     beliefs=dataCost.copy()
+
+    msg_incoming_from_U = np.roll(msgD, 1, axis=0)
+    msg_incoming_from_L = np.roll(msgR, 1, axis=1)
+    msg_incoming_from_D = np.roll(msgU, -1, axis=0)
+    msg_incoming_from_R = np.roll(msgL, -1, axis=1)
+
+    beliefs += msg_incoming_from_D + msg_incoming_from_L + msg_incoming_from_R + msg_incoming_from_U
+
     return beliefs
 
 def MAP_labeling(beliefs):
     """Return a 2D array assigning to each pixel its best label from beliefs
     computed so far"""
-    return np.zeros((beliefs.shape[0],beliefs.shape[1]))
+
+    return np.amin(beliefs, axis=2)
+    # return np.zeros((beliefs.shape[0],beliefs.shape[1]))
 
 def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     """The main function"""
@@ -135,10 +145,10 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
         msgU,msgD,msgL,msgR = update_msg(msgU,msgD,msgL,msgR,dataCost,Lambda)
         msgU,msgD,msgL,msgR = normalize_msg(msgU,msgD,msgL,msgR)
         # Next lines unused for next iteration, could be done only at the end
-        # beliefs = compute_belief(dataCost,msgU,msgD,msgL,msgR)
-        # disparity = MAP_labeling(beliefs)
+        beliefs = compute_belief(dataCost,msgU,msgD,msgL,msgR)
+        disparity = MAP_labeling(beliefs)
         # energy[iter] = compute_energy(dataCost,disparity,Lambda)
-    disparity = []
+    # disparity = []
     return disparity,energy
 
 # Input
