@@ -23,19 +23,8 @@ def compute_energy(dataCost,disparity,Lambda):
     (an integer between 0 and num_disp_values-1)
     Lambda: a scalar value.
     Return total energy, a scalar value"""
-    # print(disparity.dtype)
-    # print(disparity)
     h,w,num_disp_values = dataCost.shape
 
-    # v_mod = np.vectorize(np.mod)
-    #
-    # int_disparity = disparity.astype(np.int64)
-    # int_disparity = v_mod(int_disparity, num_disp_values)
-
-    # print(int_disparity.shape)
-    # print(dataCost.shape)
-    # energy = np.sum(dataCost)
-    # assert(disparity != None)
     energy = 0
     for i in range(h):
         for j in range(w):
@@ -48,11 +37,7 @@ def compute_energy(dataCost,disparity,Lambda):
                 energy += Lambda
             if j<w-1 and disparity[i, j+1] != disparity[i, j]:
                 energy += Lambda
-    # print(energy.shape)
 
-    # for
-    # print(energy)
-    # print(energy)
     return energy
 
 def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
@@ -66,45 +51,22 @@ def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
     msgL=np.zeros(dataCost.shape)
     msgR=np.zeros(dataCost.shape)
 
-    # msg = [msgU, msgD, msgL, msgR]
-    # neighbors = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-
     h,w,num_disp_values = dataCost.shape
-
-    # npqU = np.zeros((h, w, num_disp_values))
-    # npqD = np.zeros((h, w, num_disp_values))
-    # npqL = np.zeros((h, w, num_disp_values))
-    # npqR = np.zeros((h, w, num_disp_values))
 
     msg_incoming_from_U = np.roll(msgDPrev, 1, axis=0)
     msg_incoming_from_L = np.roll(msgRPrev, 1, axis=1)
     msg_incoming_from_D = np.roll(msgUPrev, -1, axis=0)
     msg_incoming_from_R = np.roll(msgLPrev, -1, axis=1)
 
-    # npqU = dataCost + np.roll(msgUPrev, -1, axis=0) + np.roll(msgLPrev, -1, axis=1) + np.roll(msgRPrev, 1, axis=1)
-    # npqR = dataCost + np.roll(msgUPrev, -1, axis=0) + np.roll(msgDPrev, 1, axis=0) + np.roll(msgRPrev, 1, axis=1)
-    # npqD = dataCost + np.roll(msgUPrev, 1, axis=0) + np.roll(msgLPrev, -1, axis=1) + np.roll(msgRPrev, 1, axis=1)
-    # npqL = dataCost + np.roll(msgDPrev, 1, axis=0) + np.roll(msgUPrev, -1, axis=0) + np.roll(msgRPrev, 1, axis=1)
-
     npqU = dataCost + msg_incoming_from_L + msg_incoming_from_D + msg_incoming_from_R
     npqL = dataCost + msg_incoming_from_U + msg_incoming_from_D + msg_incoming_from_R
     npqD = dataCost + msg_incoming_from_L + msg_incoming_from_U + msg_incoming_from_R
     npqR = dataCost + msg_incoming_from_L + msg_incoming_from_D + msg_incoming_from_U
 
-    # npqU = dataCost + msgLPrev + msgDPrev + msgRPrev
-    # npqL = dataCost + msgUPrev + msgDPrev + msgRPrev
-    # npqD = dataCost + msgLPrev + msgUPrev + msgRPrev
-    # npqR = dataCost + msgLPrev + msgDPrev + msgUPrev
-
-    spqU = np.amin(npqU, axis=2)#, keepdims=True)
-    spqL = np.amin(npqL, axis=2)#, keepdims=True)
-    spqD = np.amin(npqD, axis=2)#, keepdims=True)
-    spqR = np.amin(npqR, axis=2)#, keepdims=True)
-
-    # msgU = np.minimum(npqU, Lambda + spqU, axis=2)
-    # msgL = np.minimum(npqL, Lambda + spqL, axis=2)
-    # msgD = np.minimum(npqD, Lambda + spqD, axis=2)
-    # msgR = np.minimum(npqR, Lambda + spqR, axis=2)
+    spqU = np.amin(npqU, axis=2)
+    spqL = np.amin(npqL, axis=2)
+    spqD = np.amin(npqD, axis=2)
+    spqR = np.amin(npqR, axis=2)
 
     for lp in range(num_disp_values):
         msgU[:, :, lp] = np.minimum(npqU[:, :, lp], Lambda + spqU)
@@ -112,42 +74,12 @@ def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
         msgD[:, :, lp] = np.minimum(npqD[:, :, lp], Lambda + spqD)
         msgR[:, :, lp] = np.minimum(npqR[:, :, lp], Lambda + spqR)
 
-    # print(np.min(msg_incoming_from_D))
-    # print(np.min(msg_incoming_from_L))
-    # print(np.min(msg_incoming_from_R))
-    # print(np.min(msg_incoming_from_U))
-
-    # for lp in range(num_disp_values):
-    #     msgU[:, :, lp] = np.amin(npqU[:, :, lp], Lambda + spqU, axis=2)
-    #     msgD[:, :, lp] = np.amin(npqD[:, :, lp], Lambda + spqD)
-    #     msgL[:, :, lp] = np.amin(npqL[:, :, lp], Lambda + spqL)
-    #     msgR[:, :, lp] = np.amin(npqR[:, :, lp], Lambda + spqR)
-    # for y in range(h):
-    #     for x in range(w):
-    #         for lp in range(num_disp_values):
-    #             for dq in neighbors:
-    #                 s = 0
-    #                 for dr in neighbors:
-    #                     if dr != dq:
-    #                         xr, yr = x+dr[0], y+dr[1]
-    #                         xq, yq = x+dq[0], y+dq[1]
-    #                         s += msg[yr, xr, lp]
-    #             npq = compute_energy(dataCost,lp,Lambda) +
-
-
-
     return msgU,msgD,msgL,msgR
 
 def normalize_msg(msgU,msgD,msgL,msgR):
     """Subtract mean along depth dimension from each message"""
-    # print('Before normalization')
-    # print(np.min(msgU))
-    # print(np.min(msgD))
-    # print(np.min(msgL))
-    # print(np.min(msgR))
 
     avg=np.mean(msgU,axis=2)
-    # print(avg)
     msgU -= avg[:,:,np.newaxis]
     avg=np.mean(msgD,axis=2)
     msgD -= avg[:,:,np.newaxis]
@@ -156,19 +88,11 @@ def normalize_msg(msgU,msgD,msgL,msgR):
     avg=np.mean(msgR,axis=2)
     msgR -= avg[:,:,np.newaxis]
 
-    # print('After normalization')
-    # print(np.min(msgU))
-    # print(np.min(msgD))
-    # print(np.min(msgL))
-    # print(np.min(msgR))
-
     return msgU,msgD,msgL,msgR
 
 def compute_belief(dataCost,msgU,msgD,msgL,msgR):
     """Compute beliefs, sum of data cost and messages from all neighbors"""
     beliefs=dataCost.copy()
-
-    # print(dataCost)
 
     msg_incoming_from_U = np.roll(msgD, 1, axis=0)
     msg_incoming_from_L = np.roll(msgR, 1, axis=1)
@@ -176,31 +100,13 @@ def compute_belief(dataCost,msgU,msgD,msgL,msgR):
     msg_incoming_from_R = np.roll(msgL, -1, axis=1)
 
     beliefs += msg_incoming_from_D + msg_incoming_from_L + msg_incoming_from_R + msg_incoming_from_U
-    # print(np.min(msg_incoming_from_D))
-    # print(np.min(msg_incoming_from_L))
-    # print(np.min(msg_incoming_from_R))
-    # print(np.min(msg_incoming_from_U))
-    # beliefs += msgU + msgL + msgD + msgR
 
     return beliefs
 
 def MAP_labeling(beliefs):
     """Return a 2D array assigning to each pixel its best label from beliefs
     computed so far"""
-    # print(np.min(beliefs))
-
-    # h,w,num_disp_values = beliefs.shape
-    # v_mod = np.vectorize(max)
-
-    disparity = np.argmin(beliefs, axis=2)
-    # disparity = np.amin(beliefs, axis=2)
-    # int_disparity = disparity.astype(np.int8)
-    # int_disparity_ = int_disparity - np.amin(int_disparity)
-    # int_disparity = v_mod(int_disparity, 0)
-    # print(np.amin(int_disparity_))
-    # return int_disparity_
-    # return np.zeros((beliefs.shape[0],beliefs.shape[1]))
-    return disparity
+    return np.argmin(beliefs, axis=2)
 
 def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     """The main function"""
@@ -212,7 +118,7 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     msgD=np.zeros((h, w, num_disp_values))
     msgL=np.zeros((h, w, num_disp_values))
     msgR=np.zeros((h, w, num_disp_values))
-    print(np.min(dataCost))
+
     for iter in range(num_iterations):
         msgU,msgD,msgL,msgR = update_msg(msgU,msgD,msgL,msgR,dataCost,Lambda)
         msgU,msgD,msgL,msgR = normalize_msg(msgU,msgD,msgL,msgR)
@@ -220,7 +126,8 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
         # Next lines unused for next iteration, could be done only at the end
         beliefs = compute_belief(dataCost,msgU,msgD,msgL,msgR)
         disparity = MAP_labeling(beliefs)
-        # energy[iter] = compute_energy(dataCost,disparity,Lambda)
+        energy[iter] = compute_energy(dataCost,disparity,Lambda)
+
     return disparity,energy
 
 # Input
@@ -238,14 +145,13 @@ img_right=img_right.astype(float)
 
 # Parameters
 num_disp_values=16 # these images have disparity between 0 and 15.
-Lambda=10.0
+Lambda=50.0
 
 # Gaussian filtering
 I1=scipy.ndimage.filters.gaussian_filter(img_left, 0.6)
 I2=scipy.ndimage.filters.gaussian_filter(img_right, 0.6)
 
 disparity,energy = stereo_bp(I1,I2,num_disp_values,Lambda)
-print(np.min(disparity))
 imageio.imwrite('disparity_{:g}.png'.format(Lambda),disparity)
 
 # Plot results
