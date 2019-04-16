@@ -12,7 +12,7 @@ def compute_data_cost(I1, I2, num_disp_values, Tau):
     dataCost=np.zeros((h,w,num_disp_values))
 
     for lp in range(num_disp_values):
-        dataCost[:, :, lp] = np.minimum(1./3*norm(I1[:, :] - np.roll(I2, -lp, axis=1), axis=2, ord=1), Tau*np.ones((h, w)))
+        dataCost[:, :, lp] = np.minimum(1./3*norm(I1 - np.roll(I2, lp, axis=1), axis=2, ord=1), Tau*np.ones((h, w)))
 
     return dataCost
 
@@ -23,7 +23,37 @@ def compute_energy(dataCost,disparity,Lambda):
     (an integer between 0 and num_disp_values-1)
     Lambda: a scalar value.
     Return total energy, a scalar value"""
-    return 0
+    # print(disparity.dtype)
+    # print(disparity)
+    h,w,num_disp_values = dataCost.shape
+
+    # v_mod = np.vectorize(np.mod)
+    #
+    # int_disparity = disparity.astype(np.int64)
+    # int_disparity = v_mod(int_disparity, num_disp_values)
+
+    # print(int_disparity.shape)
+    # print(dataCost.shape)
+    # energy = np.sum(dataCost)
+    # assert(disparity != None)
+    energy = 0
+    for i in range(h):
+        for j in range(w):
+            energy += dataCost[i, j, disparity[i, j]]
+            if i>0 and disparity[i-1, j] != disparity[i, j]:
+                energy += Lambda
+            if i<h-1 and disparity[i+1, j] != disparity[i, j]:
+                energy += Lambda
+            if j>0 and disparity[i, j-1] != disparity[i, j]:
+                energy += Lambda
+            if j<w-1 and disparity[i, j+1] != disparity[i, j]:
+                energy += Lambda
+    # print(energy.shape)
+
+    # for
+    # print(energy)
+    # print(energy)
+    return energy
 
 def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
     """Update message maps.
@@ -61,6 +91,11 @@ def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
     npqD = dataCost + msg_incoming_from_L + msg_incoming_from_U + msg_incoming_from_R
     npqR = dataCost + msg_incoming_from_L + msg_incoming_from_D + msg_incoming_from_U
 
+    # npqU = dataCost + msgLPrev + msgDPrev + msgRPrev
+    # npqL = dataCost + msgUPrev + msgDPrev + msgRPrev
+    # npqD = dataCost + msgLPrev + msgUPrev + msgRPrev
+    # npqR = dataCost + msgLPrev + msgDPrev + msgUPrev
+
     spqU = np.amin(npqU, axis=2)#, keepdims=True)
     spqL = np.amin(npqL, axis=2)#, keepdims=True)
     spqD = np.amin(npqD, axis=2)#, keepdims=True)
@@ -76,6 +111,11 @@ def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
         msgL[:, :, lp] = np.minimum(npqL[:, :, lp], Lambda + spqL)
         msgD[:, :, lp] = np.minimum(npqD[:, :, lp], Lambda + spqD)
         msgR[:, :, lp] = np.minimum(npqR[:, :, lp], Lambda + spqR)
+
+    # print(np.min(msg_incoming_from_D))
+    # print(np.min(msg_incoming_from_L))
+    # print(np.min(msg_incoming_from_R))
+    # print(np.min(msg_incoming_from_U))
 
     # for lp in range(num_disp_values):
     #     msgU[:, :, lp] = np.amin(npqU[:, :, lp], Lambda + spqU, axis=2)
@@ -100,7 +140,14 @@ def update_msg(msgUPrev,msgDPrev,msgLPrev,msgRPrev,dataCost,Lambda):
 
 def normalize_msg(msgU,msgD,msgL,msgR):
     """Subtract mean along depth dimension from each message"""
+    # print('Before normalization')
+    # print(np.min(msgU))
+    # print(np.min(msgD))
+    # print(np.min(msgL))
+    # print(np.min(msgR))
+
     avg=np.mean(msgU,axis=2)
+    # print(avg)
     msgU -= avg[:,:,np.newaxis]
     avg=np.mean(msgD,axis=2)
     msgD -= avg[:,:,np.newaxis]
@@ -108,11 +155,20 @@ def normalize_msg(msgU,msgD,msgL,msgR):
     msgL -= avg[:,:,np.newaxis]
     avg=np.mean(msgR,axis=2)
     msgR -= avg[:,:,np.newaxis]
+
+    # print('After normalization')
+    # print(np.min(msgU))
+    # print(np.min(msgD))
+    # print(np.min(msgL))
+    # print(np.min(msgR))
+
     return msgU,msgD,msgL,msgR
 
 def compute_belief(dataCost,msgU,msgD,msgL,msgR):
     """Compute beliefs, sum of data cost and messages from all neighbors"""
     beliefs=dataCost.copy()
+
+    # print(dataCost)
 
     msg_incoming_from_U = np.roll(msgD, 1, axis=0)
     msg_incoming_from_L = np.roll(msgR, 1, axis=1)
@@ -120,15 +176,31 @@ def compute_belief(dataCost,msgU,msgD,msgL,msgR):
     msg_incoming_from_R = np.roll(msgL, -1, axis=1)
 
     beliefs += msg_incoming_from_D + msg_incoming_from_L + msg_incoming_from_R + msg_incoming_from_U
+    # print(np.min(msg_incoming_from_D))
+    # print(np.min(msg_incoming_from_L))
+    # print(np.min(msg_incoming_from_R))
+    # print(np.min(msg_incoming_from_U))
+    # beliefs += msgU + msgL + msgD + msgR
 
     return beliefs
 
 def MAP_labeling(beliefs):
     """Return a 2D array assigning to each pixel its best label from beliefs
     computed so far"""
+    # print(np.min(beliefs))
 
-    return np.amin(beliefs, axis=2)
+    # h,w,num_disp_values = beliefs.shape
+    # v_mod = np.vectorize(max)
+
+    disparity = np.argmin(beliefs, axis=2)
+    # disparity = np.amin(beliefs, axis=2)
+    # int_disparity = disparity.astype(np.int8)
+    # int_disparity_ = int_disparity - np.amin(int_disparity)
+    # int_disparity = v_mod(int_disparity, 0)
+    # print(np.amin(int_disparity_))
+    # return int_disparity_
     # return np.zeros((beliefs.shape[0],beliefs.shape[1]))
+    return disparity
 
 def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     """The main function"""
@@ -140,15 +212,15 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     msgD=np.zeros((h, w, num_disp_values))
     msgL=np.zeros((h, w, num_disp_values))
     msgR=np.zeros((h, w, num_disp_values))
-
+    print(np.min(dataCost))
     for iter in range(num_iterations):
         msgU,msgD,msgL,msgR = update_msg(msgU,msgD,msgL,msgR,dataCost,Lambda)
         msgU,msgD,msgL,msgR = normalize_msg(msgU,msgD,msgL,msgR)
+        print(iter)
         # Next lines unused for next iteration, could be done only at the end
         beliefs = compute_belief(dataCost,msgU,msgD,msgL,msgR)
         disparity = MAP_labeling(beliefs)
         # energy[iter] = compute_energy(dataCost,disparity,Lambda)
-    # disparity = []
     return disparity,energy
 
 # Input
@@ -159,8 +231,7 @@ img_right=imageio.imread('tsukuba/imR.png')
 # plt.subplot(122)
 # plt.imshow(img_right)
 # plt.show()
-compute_data_cost(img_left, img_right, 15, 1)
-# stereo_bp(img_left, img_right, 15, 1)
+
 # Convert as float gray images
 img_left=img_left.astype(float)
 img_right=img_right.astype(float)
@@ -171,9 +242,10 @@ Lambda=10.0
 
 # Gaussian filtering
 I1=scipy.ndimage.filters.gaussian_filter(img_left, 0.6)
-I2=scipy.ndimage.filters.gaussian_filter(img_right,0.6)
+I2=scipy.ndimage.filters.gaussian_filter(img_right, 0.6)
 
 disparity,energy = stereo_bp(I1,I2,num_disp_values,Lambda)
+print(np.min(disparity))
 imageio.imwrite('disparity_{:g}.png'.format(Lambda),disparity)
 
 # Plot results
