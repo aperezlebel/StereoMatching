@@ -25,21 +25,17 @@ def compute_energy(dataCost,disparity,Lambda):
     Return total energy, a scalar value"""
     h,w,num_disp_values = dataCost.shape
 
-
     hh, ww = np.meshgrid(range(h), range(w), indexing='ij')
     dplp = dataCost[hh, ww, disparity]
 
+    # Unitary cost of assigning this disparity to each pixel
     energy = np.sum(dplp)
 
+    # Compute interactive cost of each neighbors
     interactionCostU = Lambda*(disparity - np.roll(disparity, 1, axis=0) != 0)
     interactionCostL = Lambda*(disparity - np.roll(disparity, 1, axis=1) != 0)
     interactionCostD = Lambda*(disparity - np.roll(disparity, -1, axis=0) != 0)
     interactionCostR = Lambda*(disparity - np.roll(disparity, -1, axis=1) != 0)
-    
-    # disparityU[0, :] = 0
-    # disparityL[:, 0] = 0
-    # disparityD[-1, :] = 0
-    # disparityR[:, -1] = 0
 
     # Ignoring edge costs
     interactionCostU[0, :] = 0
@@ -47,31 +43,11 @@ def compute_energy(dataCost,disparity,Lambda):
     interactionCostD[-1, :] = 0
     interactionCostR[:, -1] = 0
 
+    # Adding interactive cost of each neighbors
     energy += np.sum(interactionCostU)
     energy += np.sum(interactionCostL)
     energy += np.sum(interactionCostD)
     energy += np.sum(interactionCostR)
-
-    # energy += np.sum(Lambda*(disparity - disparityU != 0))
-    # energy += np.sum(Lambda*(disparity - disparityL != 0))
-    # energy += np.sum(Lambda*(disparity - disparityD != 0))
-    # energy += np.sum(Lambda*(disparity - disparityR != 0))
-
-    # energy = 0
-    # for i in range(h):
-    #     for j in range(w):
-    #         energy += dataCost[i, j, disparity[i, j]]
-    #         if i>0 and disparity[i-1, j] != disparity[i, j]:
-    #             energy += Lambda
-    #         if i<h-1 and disparity[i+1, j] != disparity[i, j]:
-    #             energy += Lambda
-    #         if j>0 and disparity[i, j-1] != disparity[i, j]:
-    #             energy += Lambda
-    #         if j<w-1 and disparity[i, j+1] != disparity[i, j]:
-    #             energy += Lambda
-
-    # lines, columns = np.meshgrid(range(h), range(w), indexing="ij")
-    # energy=np.sum(dataCost[lines, columns, disparity])
 
     return energy
 
