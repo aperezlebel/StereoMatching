@@ -25,18 +25,53 @@ def compute_energy(dataCost,disparity,Lambda):
     Return total energy, a scalar value"""
     h,w,num_disp_values = dataCost.shape
 
-    energy = 0
-    for i in range(h):
-        for j in range(w):
-            energy += dataCost[i, j, disparity[i, j]]
-            if i>0 and disparity[i-1, j] != disparity[i, j]:
-                energy += Lambda
-            if i<h-1 and disparity[i+1, j] != disparity[i, j]:
-                energy += Lambda
-            if j>0 and disparity[i, j-1] != disparity[i, j]:
-                energy += Lambda
-            if j<w-1 and disparity[i, j+1] != disparity[i, j]:
-                energy += Lambda
+
+    hh, ww = np.meshgrid(range(h), range(w), indexing='ij')
+    dplp = dataCost[hh, ww, disparity]
+
+    energy = np.sum(dplp)
+
+    interactionCostU = Lambda*(disparity - np.roll(disparity, 1, axis=0) != 0)
+    interactionCostL = Lambda*(disparity - np.roll(disparity, 1, axis=1) != 0)
+    interactionCostD = Lambda*(disparity - np.roll(disparity, -1, axis=0) != 0)
+    interactionCostR = Lambda*(disparity - np.roll(disparity, -1, axis=1) != 0)
+    
+    # disparityU[0, :] = 0
+    # disparityL[:, 0] = 0
+    # disparityD[-1, :] = 0
+    # disparityR[:, -1] = 0
+
+    # Ignoring edge costs
+    interactionCostU[0, :] = 0
+    interactionCostL[:, 0] = 0
+    interactionCostD[-1, :] = 0
+    interactionCostR[:, -1] = 0
+
+    energy += np.sum(interactionCostU)
+    energy += np.sum(interactionCostL)
+    energy += np.sum(interactionCostD)
+    energy += np.sum(interactionCostR)
+
+    # energy += np.sum(Lambda*(disparity - disparityU != 0))
+    # energy += np.sum(Lambda*(disparity - disparityL != 0))
+    # energy += np.sum(Lambda*(disparity - disparityD != 0))
+    # energy += np.sum(Lambda*(disparity - disparityR != 0))
+
+    # energy = 0
+    # for i in range(h):
+    #     for j in range(w):
+    #         energy += dataCost[i, j, disparity[i, j]]
+    #         if i>0 and disparity[i-1, j] != disparity[i, j]:
+    #             energy += Lambda
+    #         if i<h-1 and disparity[i+1, j] != disparity[i, j]:
+    #             energy += Lambda
+    #         if j>0 and disparity[i, j-1] != disparity[i, j]:
+    #             energy += Lambda
+    #         if j<w-1 and disparity[i, j+1] != disparity[i, j]:
+    #             energy += Lambda
+
+    # lines, columns = np.meshgrid(range(h), range(w), indexing="ij")
+    # energy=np.sum(dataCost[lines, columns, disparity])
 
     return energy
 
@@ -128,6 +163,7 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
         disparity = MAP_labeling(beliefs)
         energy[iter] = compute_energy(dataCost,disparity,Lambda)
 
+    print(energy[-1])
     return disparity,energy
 
 # Input
@@ -145,7 +181,7 @@ img_right=img_right.astype(float)
 
 # Parameters
 num_disp_values=16 # these images have disparity between 0 and 15.
-Lambda=50.0
+Lambda=10.0
 
 # Gaussian filtering
 I1=scipy.ndimage.filters.gaussian_filter(img_left, 0.6)
