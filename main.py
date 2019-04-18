@@ -143,8 +143,8 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     return disparity,energy
 
 # Input
-img_left =imageio.imread('tsukuba/imL.png')
-img_right=imageio.imread('tsukuba/imR.png')
+img_left =imageio.imread('input/imL.png')
+img_right=imageio.imread('input/imR.png')
 plt.subplot(121)
 plt.imshow(img_left)
 plt.subplot(122)
@@ -164,7 +164,7 @@ I1=scipy.ndimage.filters.gaussian_filter(img_left, 0.6)
 I2=scipy.ndimage.filters.gaussian_filter(img_right, 0.6)
 
 disparity,energy = stereo_bp(I1,I2,num_disp_values,Lambda)
-imageio.imwrite('disparity_{:g}.png'.format(Lambda),disparity)
+imageio.imwrite('output/disparity_{:g}.png'.format(Lambda),disparity)
 
 # Plot results
 plt.subplot(121)
