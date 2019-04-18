@@ -31,7 +31,7 @@ def compute_energy(dataCost,disparity,Lambda):
     # Unitary cost of assigning this disparity to each pixel
     energy = np.sum(dplp)
 
-    # Compute interactive cost of each neighbors
+    # Compute interaction cost of each neighbors
     interactionCostU = Lambda*(disparity - np.roll(disparity, 1, axis=0) != 0)
     interactionCostL = Lambda*(disparity - np.roll(disparity, 1, axis=1) != 0)
     interactionCostD = Lambda*(disparity - np.roll(disparity, -1, axis=0) != 0)
@@ -43,7 +43,7 @@ def compute_energy(dataCost,disparity,Lambda):
     interactionCostD[-1, :] = 0
     interactionCostR[:, -1] = 0
 
-    # Adding interactive cost of each neighbors
+    # Adding interaction cost of each neighbors
     energy += np.sum(interactionCostU)
     energy += np.sum(interactionCostL)
     energy += np.sum(interactionCostD)
@@ -130,26 +130,26 @@ def stereo_bp(I1,I2,num_disp_values,Lambda,Tau=15,num_iterations=60):
     msgL=np.zeros((h, w, num_disp_values))
     msgR=np.zeros((h, w, num_disp_values))
 
+    print('Iteration (out of {}) :'.format(num_iterations))
     for iter in range(num_iterations):
+        print('\t'+str(iter))
         msgU,msgD,msgL,msgR = update_msg(msgU,msgD,msgL,msgR,dataCost,Lambda)
         msgU,msgD,msgL,msgR = normalize_msg(msgU,msgD,msgL,msgR)
-        print(iter)
         # Next lines unused for next iteration, could be done only at the end
         beliefs = compute_belief(dataCost,msgU,msgD,msgL,msgR)
         disparity = MAP_labeling(beliefs)
         energy[iter] = compute_energy(dataCost,disparity,Lambda)
 
-    print(energy[-1])
     return disparity,energy
 
 # Input
 img_left =imageio.imread('tsukuba/imL.png')
 img_right=imageio.imread('tsukuba/imR.png')
-# plt.subplot(121)
-# plt.imshow(img_left)
-# plt.subplot(122)
-# plt.imshow(img_right)
-# plt.show()
+plt.subplot(121)
+plt.imshow(img_left)
+plt.subplot(122)
+plt.imshow(img_right)
+plt.show()
 
 # Convert as float gray images
 img_left=img_left.astype(float)
