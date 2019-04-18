@@ -23,3 +23,7 @@ Don't forget to adjust your parameters at the beginning of ```main.py```.
 Find your disparity map in the ```output``` folder. Here is an example of disparity map :
 
 ![alt txt](output/disparity_10.png?raw=true)
+
+## Resource
+
+This work has been made following the assignment.pdf file, proposed by the computer vision course of the ENPC school. See more details in it.
