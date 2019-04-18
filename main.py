@@ -4,6 +4,11 @@ import imageio
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
 
+# Parameters
+num_disp_values=16 # these images have disparity between 0 and 15.
+Lambda=10.0
+nb_iterations=60
+
 def compute_data_cost(I1, I2, num_disp_values, Tau):
     """data_cost: a 3D array of sixe height x width x num_disp_value;
     data_cost(y,x,l) is the cost of assigning the label l to pixel (y,x).
@@ -155,15 +160,11 @@ plt.show()
 img_left=img_left.astype(float)
 img_right=img_right.astype(float)
 
-# Parameters
-num_disp_values=16 # these images have disparity between 0 and 15.
-Lambda=10.0
-
 # Gaussian filtering
 I1=scipy.ndimage.filters.gaussian_filter(img_left, 0.6)
 I2=scipy.ndimage.filters.gaussian_filter(img_right, 0.6)
 
-disparity,energy = stereo_bp(I1,I2,num_disp_values,Lambda)
+disparity,energy = stereo_bp(I1,I2,num_disp_values,Lambda, num_iterations=nb_iterations)
 imageio.imwrite('output/disparity_{:g}.png'.format(Lambda),disparity)
 
 # Plot results
